@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>🇰🇪 Digital Opposition Kenya</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background-color: #f9fafb; }
+    .gradient-bg { background: linear-gradient(135deg,#1a73e8,#34a853); }
+    .scrollable { max-height: 500px; overflow-y: auto; }
+  </style>
+</head>
+
+<body class="text-gray-800">
+
+  <!-- HEADER -->
+  <header class="gradient-bg text-white text-center py-6 shadow-lg">
+    <h1 class="text-3xl font-bold">🇰🇪 Digital Opposition Kenya</h1>
+    <p class="text-lg mt-2">Empowering Citizens through Transparent AI Analysis</p>
+  </header>
+
+  <!-- MAIN CONTENT -->
+  <main class="max-w-5xl mx-auto my-10 p-6 bg-white rounded-2xl shadow-lg">
+
+    <!-- ACTION BUTTONS -->
+    <div class="flex flex-wrap justify-center gap-4 mb-8">
+      <button id="analyzeBtn" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-semibold shadow-md">🔍 Analyze Government News</button>
+      <button id="recommendBtn" class="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold shadow-md">💡 Policy Recommendations</button>
+    </div>
+
+    <!-- ANALYSIS OUTPUT -->
+    <section id="output" class="hidden bg-gray-50 border border-gray-200 rounded-xl p-6 mb-8">
+      <h2 class="text-xl font-bold mb-3">📰 Latest Opposition Analysis</h2>
+      <div id="analysisContent" class="text-gray-700 space-y-4 scrollable"></div>
+    </section>
+
+    <!-- RESPONSE AREA -->
+    <section id="responseSection" class="mb-8">
+      <div id="responseArea" class="mt-6 p-4 border border-gray-200 bg-gray-50 rounded-xl hidden scrollable"></div>
+    </section>
+
+    <!-- CITIZEN QUESTION FORM -->
+    <section>
+      <h2 class="text-xl font-bold mb-3">💬 Ask About Current Government Matters</h2>
+      <form id="questionForm" class="flex flex-col sm:flex-row gap-4">
+        <input type="text" id="citizenQuestion" placeholder="Type your question here..." class="flex-1 border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="flex gap-2 items-center">
+          <select id="voiceSelectCitizen" class="border border-gray-400 rounded-lg px-2 py-1 text-sm">
+            <option value="en-GB">English (UK)</option>
+            <option value="sw-KE">Kiswahili (Kenya)</option>
+          </select>
+          <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-xl font-semibold shadow-md">Ask</button>
+        </div>
+      </form>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="text-center text-red-600 py-4 border-t mt-10">
+    <p>&copy; 2025 Digital Opposition Kenya. Built for Transparency & Accountability.</p>
+  </footer>
+
+  <!-- SCRIPT SECTION -->
+  <script>
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const recommendBtn = document.getElementById("recommendBtn");
+    const questionForm = document.getElementById("questionForm");
+    const output = document.getElementById("output");
+    const analysisContent = document.getElementById("analysisContent");
+    const responseArea = document.getElementById("responseArea");
+    const synth = window.speechSynthesis;
+
+    let latestAnalysis = "";
+    let latestRecommendation = "";
+
+    // ✅ Utility to download as text file
+    function downloadTextFile(filename, text) {
+      const blob = new Blob([text], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // ✅ Speak text aloud
+    function speakText(text, langSelectorId) {
+      if (!text) return;
+      if (synth.speaking) synth.cancel();
+      const lang = document.getElementById(langSelectorId)?.value || "en-GB";
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      synth.speak(utter);
+    }
+
+    // ✅ Remove Markdown formatting (*, **, bullets)
+    function stripMarkdown(text) {
+      if (!text) return "";
+      let clean = text.replace(/^\s*\*\s+/gm, ""); // Remove bullets
+      clean = clean.replace(/\*\*(.*?)\*\*/g, "$1"); // Bold
+      clean = clean.replace(/\*(.*?)\*/g, "$1"); // Italic
+      return clean;
+    }
+
+    // ✅ ANALYZE NEWS
+    analyzeBtn.addEventListener("click", async () => {
+      output.classList.remove("hidden");
+      analysisContent.innerHTML = "<p class='text-blue-600 font-semibold'>🔄 Fetching and analyzing news...</p>";
+
+      const res = await fetch("/analyze");
+      const data = await res.json();
+
+      if (data.analyses && data.analyses.length > 0) {
+        latestAnalysis = data.analyses.map((art) =>
+          `🗞️ ${art.title}\n${stripMarkdown(art.analysis)}\nSource: ${art.source}\n\n`
+        ).join("");
+
+        analysisContent.innerHTML = `
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-lg">📰 Latest Opposition Analysis</h3>
+            <div class="flex gap-2 items-center">
+              <select id="voiceSelectAnalysis" class="border border-gray-400 rounded-lg px-2 py-1 text-sm">
+                <option value="en-GB">English (UK)</option>
+                <option value="sw-KE">Kiswahili (Kenya)</option>
+              </select>
+              <button id="speakAnalysisBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl shadow-md">🔊 Read Aloud</button>
+              <button id="downloadAnalysisBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl shadow-md">⬇️ Download</button>
+            </div>
+          </div>
+          ${data.analyses.map((art) => `
+            <div class="bg-white border border-gray-200 rounded-xl p-4 shadow-sm mb-4">
+              <h3 class="font-semibold text-lg">🗞️ ${art.title}</h3>
+              <p class="mt-2 whitespace-pre-line">${stripMarkdown(art.analysis)}</p>
+              <a href="${art.source}" target="_blank" class="text-blue-600 underline mt-2 block">🔗 Read More</a>
+            </div>
+          `).join("")}
+        `;
+
+        document.getElementById("downloadAnalysisBtn").addEventListener("click", () => {
+          downloadTextFile("Opposition_Analysis.txt", latestAnalysis);
+        });
+
+        document.getElementById("speakAnalysisBtn").addEventListener("click", () => {
+          speakText(latestAnalysis, "voiceSelectAnalysis");
+        });
+
+        speakText(latestAnalysis, "voiceSelectAnalysis");
+
+      } else {
+        analysisContent.innerHTML = "<p class='text-red-600'>⚠️ No analysis available right now.</p>";
+      }
+    });
+
+    // ✅ RECOMMENDATIONS
+    recommendBtn.addEventListener("click", async () => {
+      responseArea.classList.remove("hidden");
+      responseArea.innerHTML = "<p class='text-blue-600 font-semibold'>🔄 Generating policy recommendations...</p>";
+
+      const res = await fetch("/recommend");
+      const data = await res.json();
+      latestRecommendation = stripMarkdown(data.recommendation);
+
+      responseArea.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-lg">💡 Policy Recommendations</h3>
+          <div class="flex gap-2 items-center">
+            <select id="voiceSelectRecommend" class="border border-gray-400 rounded-lg px-2 py-1 text-sm">
+              <option value="en-GB">English (UK)</option>
+              <option value="sw-KE">Kiswahili (Kenya)</option>
+            </select>
+            <button id="speakRecommendBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl shadow-md">🔊 Read Aloud</button>
+            <button id="downloadRecommendBtn" class="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded-xl shadow-md">⬇️ Download</button>
+          </div>
+        </div>
+        <p class="whitespace-pre-line">${latestRecommendation}</p>
+      `;
+
+      document.getElementById("downloadRecommendBtn").addEventListener("click", () => {
+        downloadTextFile("Citizen_Recommendations.txt", latestRecommendation);
+      });
+
+      document.getElementById("speakRecommendBtn").addEventListener("click", () => {
+        speakText(latestRecommendation, "voiceSelectRecommend");
+      });
+
+      speakText(latestRecommendation, "voiceSelectRecommend");
+    });
+
+    // ✅ CITIZEN QUESTION
+    questionForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const question = document.getElementById("citizenQuestion").value.trim();
+      if (!question) return;
+
+      responseArea.classList.remove("hidden");
+      responseArea.innerHTML = "<p class='text-blue-600 font-semibold'>🤖 Thinking...</p>";
+
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ question })
+      });
+
+      const data = await res.json();
+      const answer = stripMarkdown(data.answer);
+
+      responseArea.innerHTML = `
+        <div class="flex justify-between items-center mb-3">
+          <h3 class="font-bold text-lg">🗣️ Response from AI</h3>
+          <div class="flex gap-2 items-center">
+            <button id="speakAnswerBtn" class="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl shadow-md">🔊 Read Aloud</button>
+            <button id="downloadAnswerBtn" class="bg-gray-800 hover:bg-gray-900 text-white px-4 py-2 rounded-xl shadow-md">⬇️ Download</button>
+          </div>
+        </div>
+        <p class="whitespace-pre-line">${answer}</p>
+      `;
+
+      document.getElementById("speakAnswerBtn").addEventListener("click", () => {
+        speakText(answer, "voiceSelectCitizen");
+      });
+
+      document.getElementById("downloadAnswerBtn").addEventListener("click", () => {
+        downloadTextFile("AI_Response.txt", answer);
+      });
+
+      speakText(answer, "voiceSelectCitizen");
+    });
+  </script>
+</body>
+</html>
